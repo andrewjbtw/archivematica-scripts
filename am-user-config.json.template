@@ -1,3 +1,35 @@
+-----
+
+Edit this to make a valid JSON file (i.e. remove these comments)
+
+This is a configuration file for a set of scripts for use with Archivematica.
+
+Instructions:
+
+1. Save this file in "$HOME/.archivematica/am-user-config.json"
+
+This is where the scripts will look for a configuration file. If you prefer
+to use a different location, you'll need to edit the scripts themselves.
+
+2. Enter the values for each key.
+
+"am" is the abbreviation for Archivematica
+"ss" is the abbreviation for the Storage Service
+
+Usernames: you'll need to get usernames for each application
+API keys: you'll need to get your API keys for each application
+Hostnames: URLs or IP addresses. Do not include "https" or "http"
+
+am_transfer_source_uuid: copy this value from the Storage Service
+am_transfer_source_root: absolute path to the transfer source, as listed in the Storage Service (i.e. "/home" rather than "home")
+
+log_dir: directory to store logs for each script; user running scripts must have read/write access
+scripts_dir: local directory where the scripts can be found; some scripts call other scripts
+
+3. Delete these instructions, leaving behind only a valid JSON file.
+
+-----
+
 {"am_username":"",
 "am_api_key":"",
 "am_host":"",
