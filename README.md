@@ -49,24 +49,24 @@ For a new transfer, the script
 - monitors the course of ingest by reporting back progress on the command line
 - checks the fixity of the resulting AIP after it's been sent to archival storage
 - reports back basic summary information about the ingested package
-- moves the "original" folder in the transfer source to a new directory where it can be deleted after confirming that the ingest was successful
+- moves the "original" folder in the transfer source to a "pending deletion" directory where it can be deleted after confirming that the ingest was successful
 
 *Note*: You can run more than one transfer at the same time (by calling the script from different shells), but you can't run two transfers with the same name at the same time. This was done out of caution to prevent name collisions within Archivematica (which does not assign UUIDs until after a transfer starts), and to prevent accidentally sending the same folder or zip file twice.
 
-The script uses a lock file to track the names of running transfers. The lock file is only deleted after the transfer is ingested as an AIP. If the transfer fails or is rejected, you will have to manually remove the lock file, which is stored in the log directory. This can serve as a reminder to review any failures or rejections before attempting to ingest them again.
+The script uses a lock file to track the name of each running transfer (one lock file per transfer). The lock file is only deleted after the transfer is ingested as an AIP. If the transfer fails or is rejected, you will have to manually remove the lock file, which is stored in the log directory. This can help serve as a reminder to review any failures or rejections before attempting to ingest the same transfer(s) again.
 
 #### Reattaching to an ingest in progress
 
-If the script is interrrupted and an ingest is already in progress, you can "reattach" the script to that ingest. It will then complete everything listed above except for the initial step of starting a transfer. To reattach, you will need
+If the script is interrrupted and an ingest is already in progress, you can "reattach" the script to that ingest. It will then complete everything listed above except for the initial (already completed) step of starting a transfer. To reattach, you will need
 
 - the path to the original folder in the transfer source location
 - the UUID assigned to that package at the "transfer" stage
 
 The UUID is required to make sure that you are reattaching to the correct package. The path to the original folder is required so that it can be moved to the pending deletion directory after the AIP has been ingested.
 
-Because the script runs a number of post-ingest tasks, it's best to reattach it if it gets interrupted for any reason. This will ensure that the fixity check runs automatically after the AIP reaches archival storage and that the lock file gets deleted if every step is completed successfully.
+Because the script runs a number of post-ingest tasks, it's best to reattach it if it gets interrupted for any reason. This will ensure that the fixity check runs automatically after the AIP reaches archival storage and that the lock file gets deleted if every step is completed successfully. If the script is not reattached, then it will be necessary to run those steps manually.
 
-The important thing to keep in mind is that ultimately Archivematica controls the ingest after the transfer is approved. From that point until the AIP is stored, the script is just checking back for status updates and then acting on the information it receives. So if the script crashes or otherwise gets disconnected, but Archivematica remains online, the ingest will remain active in Archivematica itself. This is what makes it possible to reattach the script.
+The important thing to keep in mind is that ultimately Archivematica controls the ingest after the transfer has been started. From that point until the AIP is stored, the script is just checking back for status updates and then acting on the information it receives. So if the script crashes or otherwise gets disconnected, but Archivematica remains online, the ingest will remain active in Archivematica itself. This is what makes it possible to reattach the script.
 
 #### Screen output
 
@@ -98,28 +98,28 @@ $ ./single-ingest.sh -t /transfer_source/example
 
 ```
 
-Tasks with the status of USER_INPUT require decisions to be made using the Archivematica dashboard. The script will simply wait indefinitely until a decision is made. If your processing configuration is set to make all choices automatically, then the script will simply run until ingest is complete and the AIP passes a fixity check.
+Tasks with the status of USER_INPUT require decisions to be made using the Archivematica dashboard. The script will wait indefinitely until a decision is made. If your processing configuration is set to make all choices automatically, then the script will run straight through until ingest is complete and the AIP passes a fixity check. This means that it is possible to fully automate ingest by setting the processing configuration to never ask for input.
 
 #### Logs
 
-This script logs two outputs to files in the log directory (which is designated in the configuration file):
+This script logs two outputs to files that are stored in the log directory (which you can choose in the configuration file):
 
 1. The results of the fixity check on the stored AIP. This is stored as a JSON line appended to a log file named "post-ingest-fixity-check.log". Note that more recent versions of Archivematica store the results of fixity checks in the Storage Service, so maintaining your own log is no longer strictly necessary, but this feature pre-dates that functionality.
 2. A CSV line containing the following information: AIP Name, UUID, size. This line is stored in a CSV text file listing all completed ingests from the same day and can be found in a subdirectory of the log directory named "completed ingests".
 
 #### File management
 
-When a transfer has been ingested successfully, it is automatically moved to a folder in the pending deletion directory named for the date the ingest was completed. The folder path takes the following form:
+When a transfer has been ingested successfully, it is automatically moved to a subfolder in the pending deletion directory named for the date on which the ingest was completed. The folder path takes the following form:
 
 <code>/transfer_source/ingested-pending-deletion/YYYY-MM-DD/</code>
 
 The transfer folder is also renamed to include the AIP UUID assigned by Archivematica. This is to prevent name collisions if two transfers on the same day have the same name.
 
-For the example above, the post-ingest path to the transfer named "example" is:
+For the example above, the pending deletion directory path for the "example" folder is:
 
 <code>/transfer_source/ingested-pending-deletion/2019-06-11/example-8b5893f3-fcca-4ab7-b5f8-2acf0e546de5</code>
 
-It would be possible to change the code to delete transfers automatically after ingest, but out of caution they are simply moved to a folder where they could be reviewed or simply deleted later.
+It would be possible to change the code to delete transfers automatically after ingest, but out of caution they are simply moved to a folder where they could be reviewed and deleted later. I generally delete the previous day's transfers in a batch after confirming that they were ingested without error.
 
 # Fixity checking
 
@@ -139,9 +139,9 @@ To install:
 2. Clone this repository.
 3. Create a directory named ".archivematica" in your user's home folder
 4. Copy the configuration template file named "am-user-config.json.template" to your ".archivematica" folder.
-5. Following the instructions in the configuration file, enter the required values and rename the file to am-user-config.json
+5. Following the instructions in the configuration file, enter the required configuration values and rename the file to am-user-config.json
 
-The configuration file should look look like this:
+The complete configuration file should take the following form:
 
 ```JSON
 {"am_username":"Archivematica username",
@@ -160,6 +160,9 @@ The configuration file should look look like this:
 6. Run one of the scripts to make sure it works. I recommend starting with a fixity check on a small AIP, as it's the simplest command. In the future, I'll add a script that simply requests information from Archivematica, which is probably the safest way to test your configuration.
 
 # Dependencies
+
+- jq - for working with JSON
+- curl - for sending API requests
 
 # Design goals
 
