@@ -4,7 +4,12 @@
 # Note that deleted AIPs and AIPs that failed the "Store AIP" microservice are also listed
 # TODO update this to filter AIPs by status as an option (i.e. list only stored AIPs)
 
-source ./read-config.sh # checks current directory for script to read config file
+if [ -f ./read-config.sh ]
+then
+    source ./read-config.sh
+else
+    echo "Can't read configuration file. Check if the path to read-config.sh is correct."
+fi
 
 usage(){
 cat >&2 << END_USAGE
