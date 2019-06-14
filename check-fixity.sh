@@ -1,28 +1,12 @@
 #!/bin/bash
 # Checks fixity of a specific AIP using the Storage Service fixity check API
-#
-# Dependencies:
-#
-# 1. Requires curl and jq versions 1.4 or 1.5.
 
-
-user_config="$HOME"/.archivematica/am-user-config.json # required configuration file
-
-# check for user config file
-if [ ! -f "$user_config" ]
+if [ -f ./read-config.sh ]
 then
-	errorExit "No configuration file found at $user_config"
+    source ./read-config.sh
 else
-	if [ "$(jq 'any(. == "")' < "$user_config")" == "true" ]
-	then
-		errorExit "One or more configuration values are empty. Please check the configuration file and start over."
-        fi
+    echo "Can't read configuration file. Check if the path to read-config.sh is correct."
 fi
-
-# storage service variables
-ss_host=$(jq -r .ss_host < "$user_config")
-ss_username=$(jq -r .ss_username < "$user_config")
-ss_api_key=$(jq -r .ss_api_key < "$user_config")
 
 if [ $# -ne 1 ]
 then
