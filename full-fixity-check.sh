@@ -19,6 +19,25 @@ END_USAGE
 exit 1
 }
 
+lockfile="$log_dir"/running-fixity-check.lock
+if [ -f "$lockfile" ]
+then
+    echo "Lock file found. A fixity check may be running."
+    exit
+else
+    touch "$log_dir"/running-fixity-check.lock
+fi
+
+cleanUp(){
+    if [ -f "$lockfile" ]
+    then
+        echo -e "\nCleaning up lock file."
+        rm -v "$lockfile"
+    fi
+}
+
+trap cleanUp EXIT
+
 # Fixity checks could take days, but start date won't change
 # Defaults to current date but can be overridden when using the '-r' option to resume
 start_date=$(date -I)
@@ -47,15 +66,6 @@ do
     esac
     shift
 done
-
-lockfile="$log_dir"/running-fixity-check.lock
-if [ -f "$lockfile" ]
-then
-    echo "Lock file found. A fixity check may be running."
-    exit
-else
-    touch "$log_dir"/running-fixity-check.lock
-fi
 
 # Directory to log results of the fixity check
 results_dir="$log_dir"/full-fixity-checks/"$start_date"
