@@ -46,8 +46,8 @@ do
 		      transfer_uuid=$1
 		      reattach=true
 		      ;;
-		* )   echo "Unknown option '$1' found! Quitting ..." >&2
-              exit
+		* )   echo -e "Unknown option '$1' found! Quitting ...\n" >&2
+              usage
               ;;
 	esac
 	shift
