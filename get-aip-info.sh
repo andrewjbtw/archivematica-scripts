@@ -13,7 +13,7 @@ usage: get-aip-info.sh -u <uuid> | -a
 Options are mutually exclusive: 
 
 -u <uuid> retrieves information for the AIP with that UUID
--a retrieves information for all AIPs
+-a retrieves information for all AIPs and stores it in a JSON file in the log directory
 END_USAGE
 }
 
@@ -33,36 +33,30 @@ do
 		-a )  shift
 		      get_all=true # override default if -w was supplied as option
 		      ;;
-		* )   echo "Unknown option '$1' found! Quitting ..." >&2
-              exit
+		* )   echo "Unknown option '$1' found!" >&2
+              usage
               ;;
 	esac
 	shift
 done
 
-api_response=$(curl -s -X GET -H"Authorization: ApiKey $ss_username:$ss_api_key" "$ss_host/api/v2/file/$uuid/")
-
-if [ -z "$api_response" ]
+if [ "$get_all" == "true" ]
 then
-	echo "The uuid $uuid did not return any results from the Storage Service. Please check if you have the correct uuid."
+	retrieval_time=$(date +"%F-%H-%M-%S")
+	next="/api/v2/file/"
+
+	while [ "$next" != "null" ] ; do
+	    resultset=$(curl -s -X GET -H"Authorization: ApiKey $ss_username:$ss_api_key" "${ss_host}${next}" | jq .)
+	    next=$(echo "$resultset" | jq .meta.next | tr -d '"')
+	    alljson=$alljson$(echo "$resultset" | jq --raw-output . )$'\n'
+	done
+	echo -en "$alljson" > "$log_dir"/all-aips-"$retrieval_time".json
 else
-	echo "$api_response" | jq .
+	api_response=$(curl -s -X GET -H"Authorization: ApiKey $ss_username:$ss_api_key" "$ss_host/api/v2/file/$uuid/")
+	if [ -z "$api_response" ]
+	then
+		echo "The uuid $uuid did not return any results from the Storage Service. Please check if you have the correct uuid."
+	else
+		echo "$api_response" | jq .
+	fi
 fi
-
-
-
-
-startdate=$(date -I)
-next="api/v2/file/" 
-uuids=""
-sizes=""
-
-echo "config has been read"
-
-while [ "$next" != "null" ] ; do 
-    resultset=$(curl -s -X GET -H"Authorization: ApiKey $ss_username:$ss_api_key" "$ss_host/$next" | jq .)
-    next=$(echo "$resultset" | jq .meta.next | tr -d '"')
-    alljson=$alljson$(echo "$resultset" | jq --raw-output . )$'\n'
-done
-
-echo -en "$alljson" > "$log_dir"/aips-"$startdate".json
